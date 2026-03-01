@@ -1,141 +1,193 @@
-import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { useAuth } from '../context/AuthContext'
+import { FiMail, FiLock, FiUser, FiEye, FiEyeOff } from 'react-icons/fi'
 
-const Auth = () => {
-  const [isSignup, setIsSignup] = useState(false);
+const Auth = ({ onClose, onSuccess }) => {
+  const [isSignup, setIsSignup] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [message, setMessage] = useState({ type: '', text: '' })
+  const { signUp, signIn } = useAuth()
 
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm();
+  } = useForm()
 
-  const API_BASE = process.env.REACT_APP_API_URL;
-
-  useEffect(() => {
-    fetch(`${API_BASE}/api/users`)
-      .then(res => res.json())
-      .then(data => console.log(data))
-      .catch(err => console.error('Error fetching users:', err));
-  }, [API_BASE]);
-
-  const onSubmit = async (data) => {
-    const endpoint = isSignup ? 'signup' : 'login';
+  const onSubmit = async (formData) => {
+    setSubmitting(true)
+    setMessage({ type: '', text: '' })
 
     try {
-      const res = await fetch(`${API_BASE}/user/${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      const result = await res.json();
-
-      if (!res.ok) {
-        alert(result.message || 'Something went wrong');
-        return;
-      }
-
       if (isSignup) {
-        alert('Signup successful! Now login.');
-        setIsSignup(false);
-        reset();
+        const { data, error } = await signUp(
+          formData.email,
+          formData.password,
+          formData.fullname
+        )
+        if (error) {
+          setMessage({ type: 'error', text: error.message })
+        } else if (data?.user?.identities?.length === 0) {
+          setMessage({ type: 'error', text: 'An account with this email already exists.' })
+        } else {
+          setMessage({
+            type: 'success',
+            text: 'Account created successfully! Please check your email to verify your account.',
+          })
+          reset()
+        }
       } else {
-        alert('Login successful!');
-
-        // Send login alert email to owner
-        await fetch(`${API_BASE}/api/send-login-alert`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            fullname: result.user?.fullname || data.fullname || 'N/A',
-            email: result.user?.email || data.email,
-            loginTime: new Date().toLocaleString(),
-          }),
-        });
-
-        // Optional: Save token or redirect
+        const { error } = await signIn(formData.email, formData.password)
+        if (error) {
+          setMessage({ type: 'error', text: error.message })
+        } else {
+          reset()
+          if (onSuccess) onSuccess()
+          if (onClose) onClose()
+        }
       }
     } catch (err) {
-      console.error(err);
-      alert('An error occurred');
+      setMessage({ type: 'error', text: 'An unexpected error occurred. Please try again.' })
+    } finally {
+      setSubmitting(false)
     }
-  };
+  }
 
   return (
-    <div className="max-h-screen flex items-center justify-center px-4">
-      <div className="rounded shadow-md p-8 w-full max-w-md">
-        <h2 className="text-2xl font-semibold mb-6 text-center">
-          {isSignup ? 'Sign Up' : 'Login'}
+    <div className="w-full max-w-md mx-auto">
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold font-Secoundary text-heroBg">
+          {isSignup ? 'Create Account' : 'Welcome Back'}
         </h2>
+        <p className="text-gray-500 mt-2 text-sm">
+          {isSignup
+            ? 'Join Royal Friends Trading today'
+            : 'Sign in to your account'}
+        </p>
+      </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {isSignup && (
-            <div>
-              <label className="block text-sm font-medium">Full Name</label>
+      {message.text && (
+        <div
+          className={`mb-4 px-4 py-3 rounded text-sm ${
+            message.type === 'error'
+              ? 'bg-red-50 text-red-700 border border-red-200'
+              : 'bg-green-50 text-green-700 border border-green-200'
+          }`}
+        >
+          {message.text}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        {isSignup && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Full Name
+            </label>
+            <div className="relative">
+              <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
+                placeholder="Enter your full name"
                 {...register('fullname', { required: 'Full name is required' })}
-                className="w-full border rounded px-3 py-2 mt-1"
+                className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-heroBg focus:border-transparent transition-all"
               />
-              {errors.fullname && (
-                <p className="text-red-500 text-sm mt-1">{errors.fullname.message}</p>
-              )}
             </div>
-          )}
+            {errors.fullname && (
+              <p className="text-red-500 text-xs mt-1">{errors.fullname.message}</p>
+            )}
+          </div>
+        )}
 
-          <div>
-            <label className="block text-sm font-medium">Email</label>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Email Address
+          </label>
+          <div className="relative">
+            <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="email"
-              {...register('email', { required: 'Email is required' })}
-              className="w-full border rounded px-3 py-2 mt-1"
+              placeholder="Enter your email"
+              {...register('email', {
+                required: 'Email is required',
+                pattern: {
+                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                  message: 'Invalid email address',
+                },
+              })}
+              className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-heroBg focus:border-transparent transition-all"
             />
-            {errors.email && (
-              <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
-            )}
           </div>
+          {errors.email && (
+            <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
+          )}
+        </div>
 
-          <div>
-            <label className="block text-sm font-medium">Password</label>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Password
+          </label>
+          <div className="relative">
+            <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
-              type="password"
-              {...register('password', { required: 'Password is required' })}
-              className="w-full border rounded px-3 py-2 mt-1"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Enter your password"
+              {...register('password', {
+                required: 'Password is required',
+                minLength: {
+                  value: 6,
+                  message: 'Password must be at least 6 characters',
+                },
+              })}
+              className="w-full border border-gray-300 rounded-lg pl-10 pr-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-heroBg focus:border-transparent transition-all"
             />
-            {errors.password && (
-              <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
-            )}
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? <FiEyeOff /> : <FiEye />}
+            </button>
           </div>
+          {errors.password && (
+            <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
+          )}
+        </div>
 
-          <button
-            type="submit"
-            className="w-full text-white bg-heroBg hover:bg-white hover:text-black hover:font-bold"
-          >
-            {isSignup ? 'Sign Up' : 'Login'}
-          </button>
-        </form>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-full bg-heroBg text-white py-2.5 rounded-lg font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {submitting
+            ? 'Please wait...'
+            : isSignup
+            ? 'Create Account'
+            : 'Sign In'}
+        </button>
+      </form>
 
-        <p className="text-center text-sm mt-4">
+      <div className="mt-6 text-center">
+        <p className="text-sm text-gray-500">
           {isSignup ? 'Already have an account?' : "Don't have an account?"}{' '}
           <button
             onClick={() => {
-              setIsSignup(!isSignup);
-              reset();
+              setIsSignup(!isSignup)
+              setMessage({ type: '', text: '' })
+              reset()
             }}
-            className="text-blue-600 hover:underline"
+            className="text-heroBg font-medium hover:underline"
           >
-            {isSignup ? 'Login here' : 'Sign up here'}
+            {isSignup ? 'Sign In' : 'Create Account'}
           </button>
         </p>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Auth;
+export default Auth
