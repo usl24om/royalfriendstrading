@@ -9,7 +9,7 @@ useScroll();
 
   return (
     <div id='home' >
-      <section className='bg-heroBg text-white flex items-center pt-28 md:h-screen '>
+      <section className='bg-heroBg text-white flex items-center pt-36 md:h-screen '>
         <div className='container mx-auto flex flex-col md:flex-row items justify-between p-8 overflow-y-hidden gap-12 h-full '>
         {/* left side */}
         <div className='md:w-1/2 '>

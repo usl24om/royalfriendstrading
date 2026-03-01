@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { IoMdMenu, IoMdClose } from "react-icons/io";
-import { FiUser, FiLogOut } from "react-icons/fi";
+import { FiUser, FiLogOut, FiSettings, FiLogIn, FiChevronDown } from "react-icons/fi";
 import logo from "../assets/logo.jpg";
 import Auth from "../Components/LoginSignup";
 import { useAuth } from "../context/AuthContext";
@@ -11,6 +11,7 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("home");
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showTopBarMenu, setShowTopBarMenu] = useState(false);
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -47,16 +48,19 @@ const Navbar = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close user menu when clicking outside
+  // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (showUserMenu && !e.target.closest(".user-menu-container")) {
         setShowUserMenu(false);
       }
+      if (showTopBarMenu && !e.target.closest(".topbar-menu-container")) {
+        setShowTopBarMenu(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showUserMenu]);
+  }, [showUserMenu, showTopBarMenu]);
 
   const handleScrollTo = (targetId) => {
     const targetElement = document.getElementById(targetId);
@@ -169,60 +173,136 @@ const Navbar = () => {
   );
 
   return (
-    <header className="text-black py-6 px-4 fixed top-0 left-0 right-0 z-10 bg-white shadow-md">
-      <div className="container mx-auto flex justify-between items-center h-full">
-        <a href="/">
-          <img src={logo} alt="Logo" className="h-16 w-auto" />
-        </a>
-
-        <div className="hidden md:flex flex-grow justify-center">
-          <nav>{navLinks}</nav>
-        </div>
-
-        <div className="md:hidden block">
-          <button
-            onClick={handleToggle}
-            className="text-black focus:outline-none"
-            aria-label={isOpen ? "Close menu" : "Open menu"}
+    <>
+      {/* Top Utility Bar */}
+      <div className="fixed top-0 left-0 right-0 z-20 bg-heroBg text-white">
+        <div className="container mx-auto flex items-center justify-end px-4 py-1.5 gap-4">
+          {/* Control Panel Link */}
+          <a
+            href="https://vercel.com/usl24oms-projects/royalfriendstrading"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs font-medium text-white/90 hover:text-white transition-colors"
           >
-            {isOpen ? (
-              <IoMdClose className="size-6" />
-            ) : (
-              <IoMdMenu className="size-6" />
-            )}
-          </button>
+            <FiSettings className="size-3.5" />
+            <span className="hidden sm:inline">Control Panel</span>
+          </a>
+
+          <div className="w-px h-4 bg-white/30" />
+
+          {/* Login / User area */}
+          {loading ? (
+            <div className="w-16 h-4 rounded bg-white/20 animate-pulse" />
+          ) : user ? (
+            <div className="relative topbar-menu-container">
+              <button
+                onClick={() => setShowTopBarMenu(!showTopBarMenu)}
+                className="flex items-center gap-1.5 text-xs font-medium text-white/90 hover:text-white transition-colors"
+                aria-label="User menu"
+              >
+                <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold">
+                  {initials}
+                </span>
+                <span className="hidden sm:inline max-w-[100px] truncate">
+                  {displayName}
+                </span>
+                <FiChevronDown className="size-3" />
+              </button>
+
+              {showTopBarMenu && (
+                <div className="absolute right-0 mt-2 w-44 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
+                  <button
+                    onClick={() => {
+                      setShowTopBarMenu(false);
+                      navigate("/profile");
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                  >
+                    <FiUser className="text-heroBg" />
+                    My Profile
+                  </button>
+                  <div className="border-t border-gray-100" />
+                  <button
+                    onClick={() => {
+                      setShowTopBarMenu(false);
+                      handleSignOut();
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                  >
+                    <FiLogOut />
+                    Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowAuth(true)}
+              className="flex items-center gap-1.5 text-xs font-medium text-white/90 hover:text-white transition-colors"
+            >
+              <FiLogIn className="size-3.5" />
+              <span>Login</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {isOpen && (
-        <nav className="absolute top-full left-0 w-full bg-white z-20 md:hidden shadow-md">
-          {navLinks}
-        </nav>
-      )}
+      {/* Main Navbar */}
+      <header className="text-black py-6 px-4 fixed top-[34px] left-0 right-0 z-10 bg-white shadow-md">
+        <div className="container mx-auto flex justify-between items-center h-full">
+          <a href="/">
+            <img src={logo} alt="Logo" className="h-16 w-auto" />
+          </a>
 
-      {showAuth && (
-        <div
-          className="fixed inset-0 flex items-center justify-center bg-black/50 z-50"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowAuth(false);
-          }}
-        >
-          <div className="bg-white rounded-xl p-8 w-full max-w-md relative mx-4 shadow-2xl">
+          <div className="hidden md:flex flex-grow justify-center">
+            <nav>{navLinks}</nav>
+          </div>
+
+          <div className="md:hidden block">
             <button
-              onClick={() => setShowAuth(false)}
-              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-              aria-label="Close auth modal"
+              onClick={handleToggle}
+              className="text-black focus:outline-none"
+              aria-label={isOpen ? "Close menu" : "Open menu"}
             >
-              <IoMdClose className="size-5" />
+              {isOpen ? (
+                <IoMdClose className="size-6" />
+              ) : (
+                <IoMdMenu className="size-6" />
+              )}
             </button>
-            <Auth
-              onClose={() => setShowAuth(false)}
-              onSuccess={() => setShowAuth(false)}
-            />
           </div>
         </div>
-      )}
-    </header>
+
+        {isOpen && (
+          <nav className="absolute top-full left-0 w-full bg-white z-20 md:hidden shadow-md">
+            {navLinks}
+          </nav>
+        )}
+
+        {showAuth && (
+          <div
+            className="fixed inset-0 flex items-center justify-center bg-black/50 z-50"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowAuth(false);
+            }}
+          >
+            <div className="bg-white rounded-xl p-8 w-full max-w-md relative mx-4 shadow-2xl">
+              <button
+                onClick={() => setShowAuth(false)}
+                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                aria-label="Close auth modal"
+              >
+                <IoMdClose className="size-5" />
+              </button>
+              <Auth
+                onClose={() => setShowAuth(false)}
+                onSuccess={() => setShowAuth(false)}
+              />
+            </div>
+          </div>
+        )}
+      </header>
+    </>
   );
 };
 

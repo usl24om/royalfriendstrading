@@ -49,7 +49,7 @@ const Profile = () => {
     .slice(0, 2)
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-28 pb-12">
+    <div className="min-h-screen bg-gray-50 pt-36 pb-12">
       <div className="container mx-auto px-4 max-w-2xl">
         {/* Back button */}
         <button
