@@ -6,6 +6,7 @@ import About from './Components/About';
 import WorkingSteps from './Components/WorkingSteps';
 import Footer from './Components/Footer';
 import { motion } from 'framer-motion';
+import { Analytics } from '@vercel/analytics/react';
 
 
 const App = () => {
@@ -66,6 +67,7 @@ const App = () => {
               
                 
                 <Footer />
+                <Analytics />
               </>
             }
           />
