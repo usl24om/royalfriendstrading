@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { IoMdMenu, IoMdClose } from "react-icons/io";
-import { FiUser, FiLogOut, FiSettings, FiLogIn, FiChevronDown } from "react-icons/fi";
+import { FiUser, FiLogOut, FiSettings, FiLogIn, FiChevronDown, FiShield } from "react-icons/fi";
 import logo from "../assets/logo.jpg";
 import Auth from "../Components/LoginSignup";
 import { useAuth } from "../context/AuthContext";
+import { useIsAdmin } from "../hooks/useIsAdmin";
 
 const Navbar = () => {
   const [showAuth, setShowAuth] = useState(false);
@@ -13,6 +14,7 @@ const Navbar = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showTopBarMenu, setShowTopBarMenu] = useState(false);
   const { user, loading, signOut } = useAuth();
+  const { isAdmin } = useIsAdmin();
   const navigate = useNavigate();
 
   const handleToggle = () => setIsOpen(!isOpen);
@@ -221,6 +223,21 @@ const Navbar = () => {
                     <FiUser className="text-heroBg" />
                     My Profile
                   </button>
+                  {isAdmin && (
+                    <>
+                      <div className="border-t border-gray-100" />
+                      <button
+                        onClick={() => {
+                          setShowTopBarMenu(false);
+                          navigate("/admin");
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-Primary hover:bg-green-50 flex items-center gap-2 transition-colors font-medium"
+                      >
+                        <FiShield className="size-4" />
+                        Admin Dashboard
+                      </button>
+                    </>
+                  )}
                   <div className="border-t border-gray-100" />
                   <button
                     onClick={() => {

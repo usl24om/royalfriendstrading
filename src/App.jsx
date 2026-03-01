@@ -6,6 +6,8 @@ import About from './Components/About';
 import WorkingSteps from './Components/WorkingSteps';
 import Footer from './Components/Footer';
 import Profile from './Components/Profile';
+import AdminDashboard from './Components/Admin/AdminDashboard';
+import ProtectedAdminRoute from './Components/Admin/ProtectedAdminRoute';
 import { motion } from 'framer-motion';
 import { Analytics } from '@vercel/analytics/react';
 import { AuthProvider } from './context/AuthContext';
@@ -66,6 +68,14 @@ const App = () => {
               }
             />
             <Route path="/profile" element={<Profile />} />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedAdminRoute>
+                  <AdminDashboard />
+                </ProtectedAdminRoute>
+              }
+            />
           </Routes>
         </Router>
       </div>

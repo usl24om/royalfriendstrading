@@ -1,126 +1,206 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 
-/**
- * Hook to fetch and manage content from Supabase tables
- * @param {string} table - Table name (hero_content, services, about_section, contact_info, team_members)
- * @param {object} options - Query options (filter, order, limit)
- */
-export const useContent = (table, options = {}) => {
-  const [data, setData] = useState(null);
+export const useContent = () => {
+  const [heroContent, setHeroContent] = useState([]);
+  const [services, setServices] = useState([]);
+  const [aboutContent, setAboutContent] = useState([]);
+  const [contactInfo, setContactInfo] = useState([]);
+  const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchContent();
-  }, [table]);
+    fetchAllContent();
+  }, []);
 
-  const fetchContent = async () => {
+  const fetchAllContent = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-      
-      let query = supabase.from(table).select("*");
+      const [heroRes, servicesRes, aboutRes, contactRes, teamRes] = await Promise.all([
+        supabase.from("hero_content").select("*").limit(1),
+        supabase.from("services").select("*").order("order_index", { ascending: true }),
+        supabase.from("about_section").select("*").limit(1),
+        supabase.from("contact_info").select("*").limit(1),
+        supabase.from("team_members").select("*").order("order_index", { ascending: true }),
+      ]);
 
-      // Apply filters if provided
-      if (options.filter) {
-        Object.entries(options.filter).forEach(([key, value]) => {
-          query = query.eq(key, value);
-        });
-      }
+      if (heroRes.error) throw heroRes.error;
+      if (servicesRes.error) throw servicesRes.error;
+      if (aboutRes.error) throw aboutRes.error;
+      if (contactRes.error) throw contactRes.error;
+      if (teamRes.error) throw teamRes.error;
 
-      // Apply ordering
-      if (options.order) {
-        const { column, ascending = true } = options.order;
-        query = query.order(column, { ascending });
-      }
-
-      // Apply limit
-      if (options.limit) {
-        query = query.limit(options.limit);
-      }
-
-      const { data: result, error: err } = await query;
-
-      if (err) throw err;
-      setData(result);
+      setHeroContent(heroRes.data || []);
+      setServices(servicesRes.data || []);
+      setAboutContent(aboutRes.data || []);
+      setContactInfo(contactRes.data || []);
+      setTeamMembers(teamRes.data || []);
     } catch (err) {
+      console.error("Error fetching content:", err);
       setError(err.message);
-      console.error(`Error fetching ${table}:`, err);
     } finally {
       setLoading(false);
     }
   };
 
-  return { data, loading, error, refetch: fetchContent };
-};
-
-/**
- * Hook for admin operations (create, update, delete)
- */
-export const useContentAdmin = (table) => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const create = async (payload) => {
+  const updateHeroContent = async (data) => {
     try {
-      setLoading(true);
-      setError(null);
+      const { data: existingContent } = await supabase.from("hero_content").select("id").limit(1);
       
-      const { data, error: err } = await supabase
-        .from(table)
-        .insert([payload])
-        .select();
-
-      if (err) throw err;
-      return data[0];
+      if (existingContent && existingContent.length > 0) {
+        const { error: err } = await supabase
+          .from("hero_content")
+          .update({ ...data, updated_at: new Date() })
+          .eq("id", existingContent[0].id);
+        if (err) throw err;
+      } else {
+        const { error: err } = await supabase.from("hero_content").insert([data]);
+        if (err) throw err;
+      }
+      await fetchAllContent();
     } catch (err) {
-      setError(err.message);
+      console.error("Error updating hero content:", err);
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 
-  const update = async (id, payload) => {
+  const addService = async (serviceData) => {
     try {
-      setLoading(true);
-      setError(null);
-      
-      const { data, error: err } = await supabase
-        .from(table)
-        .update(payload)
-        .eq("id", id)
-        .select();
-
-      if (err) throw err;
-      return data[0];
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const delete_ = async (id) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
       const { error: err } = await supabase
-        .from(table)
-        .delete()
-        .eq("id", id);
-
+        .from("services")
+        .insert([{ ...serviceData, order_index: services.length }]);
       if (err) throw err;
+      await fetchAllContent();
     } catch (err) {
-      setError(err.message);
+      console.error("Error adding service:", err);
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 
-  return { create, update, delete: delete_, loading, error };
+  const updateService = async (id, serviceData) => {
+    try {
+      const { error: err } = await supabase
+        .from("services")
+        .update({ ...serviceData, updated_at: new Date() })
+        .eq("id", id);
+      if (err) throw err;
+      await fetchAllContent();
+    } catch (err) {
+      console.error("Error updating service:", err);
+      throw err;
+    }
+  };
+
+  const deleteService = async (id) => {
+    try {
+      const { error: err } = await supabase.from("services").delete().eq("id", id);
+      if (err) throw err;
+      await fetchAllContent();
+    } catch (err) {
+      console.error("Error deleting service:", err);
+      throw err;
+    }
+  };
+
+  const updateAboutContent = async (data) => {
+    try {
+      const { data: existingContent } = await supabase.from("about_section").select("id").limit(1);
+      
+      if (existingContent && existingContent.length > 0) {
+        const { error: err } = await supabase
+          .from("about_section")
+          .update({ ...data, updated_at: new Date() })
+          .eq("id", existingContent[0].id);
+        if (err) throw err;
+      } else {
+        const { error: err } = await supabase.from("about_section").insert([data]);
+        if (err) throw err;
+      }
+      await fetchAllContent();
+    } catch (err) {
+      console.error("Error updating about content:", err);
+      throw err;
+    }
+  };
+
+  const updateContactInfo = async (data) => {
+    try {
+      const { data: existingInfo } = await supabase.from("contact_info").select("id").limit(1);
+      
+      if (existingInfo && existingInfo.length > 0) {
+        const { error: err } = await supabase
+          .from("contact_info")
+          .update({ ...data, updated_at: new Date() })
+          .eq("id", existingInfo[0].id);
+        if (err) throw err;
+      } else {
+        const { error: err } = await supabase.from("contact_info").insert([data]);
+        if (err) throw err;
+      }
+      await fetchAllContent();
+    } catch (err) {
+      console.error("Error updating contact info:", err);
+      throw err;
+    }
+  };
+
+  const addTeamMember = async (memberData) => {
+    try {
+      const { error: err } = await supabase
+        .from("team_members")
+        .insert([{ ...memberData, order_index: teamMembers.length }]);
+      if (err) throw err;
+      await fetchAllContent();
+    } catch (err) {
+      console.error("Error adding team member:", err);
+      throw err;
+    }
+  };
+
+  const updateTeamMember = async (id, memberData) => {
+    try {
+      const { error: err } = await supabase
+        .from("team_members")
+        .update({ ...memberData, updated_at: new Date() })
+        .eq("id", id);
+      if (err) throw err;
+      await fetchAllContent();
+    } catch (err) {
+      console.error("Error updating team member:", err);
+      throw err;
+    }
+  };
+
+  const deleteTeamMember = async (id) => {
+    try {
+      const { error: err } = await supabase.from("team_members").delete().eq("id", id);
+      if (err) throw err;
+      await fetchAllContent();
+    } catch (err) {
+      console.error("Error deleting team member:", err);
+      throw err;
+    }
+  };
+
+  return {
+    heroContent,
+    services,
+    aboutContent,
+    contactInfo,
+    teamMembers,
+    loading,
+    error,
+    refetch: fetchAllContent,
+    updateHeroContent,
+    addService,
+    updateService,
+    deleteService,
+    updateAboutContent,
+    updateContactInfo,
+    addTeamMember,
+    updateTeamMember,
+    deleteTeamMember,
+  };
 };
