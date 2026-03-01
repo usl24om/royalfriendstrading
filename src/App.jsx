@@ -7,6 +7,7 @@ import WorkingSteps from './Components/WorkingSteps';
 import Footer from './Components/Footer';
 import { motion } from 'framer-motion';
 import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 
 const App = () => {
@@ -68,6 +69,7 @@ const App = () => {
                 
                 <Footer />
                 <Analytics />
+                <SpeedInsights />
               </>
             }
           />
